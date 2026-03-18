@@ -1,0 +1,378 @@
+{
+  "name": "n8n example",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "return [{\n  \tis_ok: false,\n    error: $json.error\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        16
+      ],
+      "id": "5e124976-ab29-4279-9223-3c211eb46f82",
+      "name": "Error outcome"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    is_ok: true,\n    output: $('LLM CALL').first().json.output\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2048,
+        -224
+      ],
+      "id": "9c8562eb-59b5-4cc3-a03b-ff33d6452bdf",
+      "name": "Success outcome"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e76ee220-4795-4e9e-a4a0-3369324238a4",
+              "leftValue": "={{ $('Check Costgate').item.json.isAllowed == true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        704,
+        -192
+      ],
+      "id": "a17d3598-380b-428d-b7c4-af1a90ce7ff7",
+      "name": "If allow"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "user_id",
+              "type": "number"
+            },
+            {
+              "name": "feature"
+            },
+            {
+              "name": "est_cost_usd",
+              "type": "number"
+            },
+            {
+              "name": "user_prompt"
+            },
+            {
+              "name": "system_prompt"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -112,
+        -176
+      ],
+      "id": "af00e9dc-1d00-43d8-9931-f4ce4c5b3ca4",
+      "name": "Input"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        704,
+        112
+      ],
+      "id": "d056b49c-cd32-4224-a198-8969a15df7fd",
+      "name": "continue anyway (do not break if Costgate is unavailable)"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  \tis_ok: false\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        -112
+      ],
+      "id": "f7c777b2-033e-4aa7-a367-5d60103fee90",
+      "name": "Return Error"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1360,
+        16
+      ],
+      "id": "87a0b229-fc78-499d-b980-6bc25e992831",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "AnYOMRtpzHVxHhdP",
+          "name": "Test OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.costgate.dev/v1/check",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Costgate-Key",
+              "value": "={{ $('Costgate Creds').item.json.X-Costgate-Key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"requestId\": \"n8n-{{$execution.id}}\",\n  \"estCostUsd\": {{$('Input').first().json.est_cost_usd}},\n  \"feature\": \"{{$('Input').first().json.feature}}\",\n  \"userId\": \"{{$('Input').first().json.user_id}}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        288,
+        -176
+      ],
+      "id": "34d514ad-b8c4-47ac-a76d-f0b0c75aa8bb",
+      "name": "Check Costgate",
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.costgate.dev/v1/consume",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Costgate-Key",
+              "value": "={{ $('Costgate Creds').item.json.X-Costgate-Key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"requestId\": \"n8n-{{$execution.id}}\",\n  \"costUsd\": {{$('Input').first().json.est_cost_usd}},\n  \"feature\": \"{{$('Input').first().json.feature}}\",\n  \"userId\": \"{{$('Input').first().json.user_id}}\"\n}",
+        "options": {
+          "timeout": 1000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1792,
+        -224
+      ],
+      "id": "c3c48b3c-d402-4d5f-a885-fc223a2c5837",
+      "name": "Consume Costgate",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "deec5d19-5f6c-4fd9-b706-f5cdfac3ffc6",
+              "name": "X-Costgate-Key",
+              "value": "{{your_costgate_api_key}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        80,
+        -176
+      ],
+      "id": "337a03d8-2633-4b4b-b055-e7efc2b3404d",
+      "name": "Costgate Creds"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Input').item.json.user_prompt }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "={{ $('Input').item.json.system_prompt }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1360,
+        -208
+      ],
+      "id": "fb6e65b0-b821-4e25-a4f0-b1b7099bf0c6",
+      "name": "LLM CALL",
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error outcome": {
+      "main": [
+        []
+      ]
+    },
+    "If allow": {
+      "main": [
+        [
+          {
+            "node": "LLM CALL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input": {
+      "main": [
+        [
+          {
+            "node": "Costgate Creds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "continue anyway (do not break if Costgate is unavailable)": {
+      "main": [
+        [
+          {
+            "node": "LLM CALL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LLM CALL",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Costgate": {
+      "main": [
+        [
+          {
+            "node": "If allow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "continue anyway (do not break if Costgate is unavailable)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consume Costgate": {
+      "main": [
+        [
+          {
+            "node": "Success outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Costgate Creds": {
+      "main": [
+        [
+          {
+            "node": "Check Costgate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM CALL": {
+      "main": [
+        [
+          {
+            "node": "Consume Costgate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "15cba7c7-af3b-460f-87ab-8957fcc5c2c5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cdae7706bd91bb78009904f74eb574d78516b196b3e0f942262c17bb7e97adfa"
+  },
+  "id": "dHHhB5uFUeyX3yrf",
+  "tags": []
+}

@@ -1,0 +1,116 @@
+openapi: 3.0.3
+
+info:
+  title: CostGate API
+  version: 1.0.0
+  description: Control LLM costs with check → consume flow
+
+servers:
+  - url: https://api.costgate.dev
+
+paths:
+  /v1/check:
+    post:
+      summary: Check if request is allowed
+      operationId: check
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckRequest'
+      responses:
+        '200':
+          description: Decision result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckResponse'
+
+  /v1/consume:
+    post:
+      summary: Record usage
+      operationId: consume
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsumeRequest'
+      responses:
+        '200':
+          description: Usage recorded
+        '202':
+          description: Accepted but not fully applied (degraded mode)
+
+components:
+  schemas:
+
+    CheckRequest:
+      type: object
+      required:
+        - requestId
+        - estCostUsd
+      properties:
+        requestId:
+          type: string
+          example: req-123
+        userId:
+          type: string
+          example: user-42
+        feature:
+          type: string
+          example: chat
+        estCostUsd:
+          type: number
+          format: float
+          example: 0.01
+
+    CheckResponse:
+      type: object
+      properties:
+        isAllowed:
+          type: boolean
+          example: true
+        decision:
+          type: string
+          example: allow
+        reason:
+          type: string
+          example: within_policy
+        estCostUsd:
+          type: number
+          example: 0.01
+        timestamp:
+          type: string
+          format: date-time
+
+    ConsumeRequest:
+      type: object
+      required:
+        - requestId
+      properties:
+        requestId:
+          type: string
+        userId:
+          type: string
+        feature:
+          type: string
+        tokensIn:
+          type: integer
+          example: 120
+        tokensOut:
+          type: integer
+          example: 45
+        costUsd:
+          type: number
+          example: 0.006
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Costgate-Key
+
+security:
+  - ApiKeyAuth: []

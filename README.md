@@ -63,8 +63,8 @@ POST /v1/consume
 
 ## Example integrations
 
-See /examples
+See [/examples](./examples/).
 
 ## API
 
-See openapi.yaml.
+See [openapi.yaml](./openapi.yaml).

@@ -4,6 +4,8 @@ Control how much your AI can spend.
 
 CostGate is a lightweight API that enforces **LLM cost budgets** for your applications.
 
+🌐 Website: https://costgate.dev
+
 
 ## Example
 ```javascript
@@ -68,3 +70,10 @@ See [/examples](./examples/).
 ## API
 
 See [openapi.yaml](./openapi.yaml).
+
+## Early access
+
+If you want to try it:
+
+- comment / DM
+- or visit https://costgate.dev
